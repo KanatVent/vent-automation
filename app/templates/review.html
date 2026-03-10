@@ -1,10 +1,91 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+  <meta charset="utf-8">
+  <title>Проверка</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 16px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { border: 1px solid #ccc; padding: 8px; vertical-align: top; }
+    input { width: 100%; box-sizing: border-box; }
+    .small { color: #666; font-size: 12px; }
+  </style>
 </head>
 <body>
+  <h2>Проверка позиций</h2>
+  <p>Найдено строк: {{ items|length }}</p>
 
+  {% if saved %}
+    <p style="color:green;"><b>Изменения сохранены</b></p>
+  {% endif %}
+
+  <form method="post" action="/review/{{ project_id }}">
+    <input type="hidden" name="row_count" value="{{ items|length }}">
+
+    <table>
+      <tr>
+        <th>Удалить</th>
+        <th>Система</th>
+        <th>Наименование</th>
+        <th>Размер</th>
+        <th>Толщина</th>
+        <th>Ед. изм</th>
+        <th>Кол-во</th>
+      </tr>
+
+      {% for i in items %}
+      <tr>
+        <td>
+          <input type="checkbox" name="delete_{{ loop.index0 }}">
+        </td>
+
+        <td>
+          <input type="text" name="system_{{ loop.index0 }}" value="{{ i.system or '' }}">
+        </td>
+
+        <td>
+          <input type="text" name="name_{{ loop.index0 }}" value="{{ i.name or '' }}">
+        </td>
+
+        <td>
+          {% if i.shape == "round" %}
+            <input type="text" name="size_{{ loop.index0 }}" value="Ø{{ i.d_mm }}">
+          {% elif i.shape == "rect" %}
+            <input type="text" name="size_{{ loop.index0 }}" value="{{ i.w_mm }}x{{ i.h_mm }}">
+          {% else %}
+            <input type="text" name="size_{{ loop.index0 }}" value="">
+          {% endif %}
+        </td>
+
+        <td>
+          <input type="text" name="thickness_{{ loop.index0 }}" value="{{ i.thickness or '' }}">
+        </td>
+
+        <td>
+          <input type="text" name="unit_{{ loop.index0 }}" value="{{ i.unit or '' }}">
+        </td>
+
+        <td>
+          <input type="text" name="qty_{{ loop.index0 }}" value="{{ i.qty or '' }}">
+        </td>
+      </tr>
+
+      <!-- скрытые поля, чтобы не потерять -->
+      <input type="hidden" name="page_{{ loop.index0 }}" value="{{ i.page or '' }}">
+      <input type="hidden" name="category_{{ loop.index0 }}" value="{{ i.category or '' }}">
+      <input type="hidden" name="mark_{{ loop.index0 }}" value="{{ i.mark or '' }}">
+      <input type="hidden" name="shape_{{ loop.index0 }}" value="{{ i.shape or '' }}">
+      <input type="hidden" name="w_mm_{{ loop.index0 }}" value="{{ i.w_mm or '' }}">
+      <input type="hidden" name="h_mm_{{ loop.index0 }}" value="{{ i.h_mm or '' }}">
+      <input type="hidden" name="d_mm_{{ loop.index0 }}" value="{{ i.d_mm or '' }}">
+      <input type="hidden" name="raw_{{ loop.index0 }}" value="{{ i.raw or '' }}">
+      {% endfor %}
+    </table>
+
+    <br>
+    <button type="submit">Сохранить изменения</button>
+    <a href="/calculate/{{ project_id }}">Посчитать</a>
+    <a href="/">← назад</a>
+  </form>
 </body>
 </html>
