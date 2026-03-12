@@ -1,5 +1,6 @@
 import os
 import shutil
+from pathlib import Path
 
 from fastapi import APIRouter, UploadFile, Request
 from fastapi.responses import HTMLResponse
@@ -11,7 +12,9 @@ from app.services.storage_service import save_project, load_project
 from app.services.calculation_service import calculate_item, summarize_by_thickness
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -29,7 +32,6 @@ async def upload(request: Request, file: UploadFile):
     items = parse_pdf(path)
     project_id = save_project(items, file.filename)
 
-    # сразу после загрузки открываем расчёт
     project = load_project(project_id)
     items = project["items"]
 
