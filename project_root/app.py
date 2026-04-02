@@ -6,7 +6,7 @@ from project_storage import (
     save_raw_text,
     save_parsed_json
 )
-from services.position_parser import parse_positions
+from parsers.position_parser import parse_positions
 from pdf_splitter import split_pdf
 
 
@@ -109,7 +109,7 @@ def main():
     save_raw_text(raw_text, project_path)
 
     lines = clean_lines(raw_text)
-    parsed_positions = to_simple_positions(lines)
+    parsed_positions = parse_positions(lines)
     save_parsed_json(parsed_positions, project_path)
 
     print(f"Готово. Проект сохранен в: {project_path}")

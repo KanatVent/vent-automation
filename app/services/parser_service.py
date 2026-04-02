@@ -90,7 +90,7 @@ def parse_pdf(path):
                 continue
 
             # базовая строка воздуховодов
-            if "воздуховод" in low:
+            if "воздуховод" in low or "переход" in low:
 
                 last_base_name = text
                 last_base_thickness = extract_thickness(text)

@@ -1,86 +1,58 @@
-import os
-import shutil
-from pathlib import Path
-
-from fastapi import APIRouter, UploadFile, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Request, UploadFile, File, Form
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
-
-from app.config import UPLOAD_DIR
 from app.services.parser_service import parse_pdf
-from app.services.storage_service import save_project, load_project
-from app.services.calculation_service import calculate_item, summarize_by_thickness
+import PyPDF2
+import os
 
 router = APIRouter()
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+templates = Jinja2Templates(directory="templates")
 
 
-@router.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+@router.get("/split", response_class=HTMLResponse)
+async def split_page(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@router.post("/upload", response_class=HTMLResponse)
-async def upload(request: Request, file: UploadFile):
-    path = os.path.join(UPLOAD_DIR, file.filename)
+@router.post("/split")
+async def split_pdf(
+    request: Request,
+    file: UploadFile = File(...),
+    pages: str = Form(...)
+):
+    start, end = map(int, pages.split("-"))
 
-    with open(path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    os.makedirs("uploads", exist_ok=True)
+    input_path = os.path.join("uploads", file.filename)
 
-    items = parse_pdf(path)
-    project_id = save_project(items, file.filename)
+    # читаем файл один раз
+    content = await file.read()
 
-    project = load_project(project_id)
-    items = project["items"]
+    # сохраняем исходный PDF
+    with open(input_path, "wb") as f:
+        f.write(content)
 
-    for item in items:
-        item["calc_result"] = calculate_item(item)
+    # читаем PDF уже с диска
+    reader = PyPDF2.PdfReader(input_path)
+    writer = PyPDF2.PdfWriter()
 
-    summary = summarize_by_thickness(items)
+    for i in range(start - 1, end):
+        writer.add_page(reader.pages[i])
 
-    return templates.TemplateResponse(
-        "calc_result.html",
-        {
-            "request": request,
-            "items": items,
-            "summary": summary,
-            "project_id": project_id
-        }
-    )
+    os.makedirs("exports", exist_ok=True)
+    output_path = os.path.join("exports", "result.pdf")
 
+    with open(output_path, "wb") as f:
+        writer.write(f)
 
-@router.get("/project/{project_id}", response_class=HTMLResponse)
-async def open_project(request: Request, project_id: str):
-    project = load_project(project_id)
+    items = parse_pdf(input_path)
 
-    return templates.TemplateResponse(
-        "review.html",
-        {
-            "request": request,
-            "items": project["items"],
-            "project_id": project_id
-        }
-    )
+    print("=== PARSER RESULT ===")
+    for item in items[:10]:
+        print(item)
 
-
-@router.get("/calculate/{project_id}", response_class=HTMLResponse)
-async def calculate_project(request: Request, project_id: str):
-    project = load_project(project_id)
-    items = project["items"]
-
-    for item in items:
-        item["calc_result"] = calculate_item(item)
-
-    summary = summarize_by_thickness(items)
-
-    return templates.TemplateResponse(
-        "calc_result.html",
-        {
-            "request": request,
-            "items": items,
-            "summary": summary,
-            "project_id": project_id
-        }
+    return FileResponse(
+        output_path,
+        filename="result.pdf",
+        media_type="application/pdf"
     )
