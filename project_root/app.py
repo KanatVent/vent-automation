@@ -7,6 +7,7 @@ from project_storage import (
     save_parsed_json
 )
 from services.position_parser import parse_positions
+from pdf_splitter import split_pdf
 
 
 def resolve_pdf_path(user_input: str) -> str | None:
@@ -68,6 +69,33 @@ def main():
         print("Текущая папка программы:", os.getcwd())
         return
 
+    # 🔥 НОВОЕ: спрашиваем про разделение PDF
+    use_split = input("Разделить PDF? (y/n): ").strip().lower()
+
+    if use_split == "y":
+        try:
+            page_range = input("Введите диапазон страниц (например 10-35): ").strip()
+            start_page, end_page = map(int, page_range.split("-"))
+
+            split_path = os.path.join("uploads", f"split_{os.path.basename(pdf_path)}")
+
+            split_pdf(
+                input_path=pdf_path,
+                start_page=start_page,
+                end_page=end_page,
+                output_path=split_path
+            )
+
+            print(f"PDF разделен: {split_path}")
+
+            # 👉 теперь работаем с новым файлом
+            pdf_path = split_path
+
+        except Exception as e:
+            print("Ошибка при разделении PDF:", e)
+            return
+
+    # дальше всё как было
     project_path = make_project_folder(project_name)
     save_source_pdf(pdf_path, project_path)
 
