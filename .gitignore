@@ -5,3 +5,6 @@ uploads/
 exports/
 data/projects/
 .idea/
+__pycache__/
+*.pyc
+.venv/
