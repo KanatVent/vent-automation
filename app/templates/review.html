@@ -2,90 +2,160 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Проверка</title>
+  <title>Проверка расчёта</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 16px; }
-    table { border-collapse: collapse; width: 100%; font-size: 14px; }
-    th, td { border: 1px solid #ccc; padding: 8px; vertical-align: top; }
-    input { width: 100%; box-sizing: border-box; }
-    .small { color: #666; font-size: 12px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .meta { color: #666; font-size: 13px; margin-bottom: 20px; }
+
+    /* Итог по толщинам */
+    .summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .summary-card {
+      background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      padding: 14px 20px; min-width: 160px;
+    }
+    .summary-card .label { font-size: 12px; color: #888; }
+    .summary-card .value { font-size: 24px; font-weight: bold; color: #1a56db; }
+    .summary-card .sub { font-size: 12px; color: #555; }
+
+    /* Системы */
+    .system-block { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+    .system-header { background: #f0f4ff; padding: 10px 16px; font-weight: bold; font-size: 15px; border-bottom: 1px solid #ddd; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #fafafa; padding: 8px 10px; text-align: left; border-bottom: 2px solid #eee; color: #555; font-weight: 600; }
+    td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafeff; }
+    .area { font-weight: bold; color: #1a56db; }
+    .thick { background: #e8f0fe; color: #1a56db; border-radius: 4px; padding: 2px 8px; font-size: 12px; display: inline-block; }
+    .iso-section { background: #fffbf0; }
+    .iso-label { font-size: 11px; color: #999; padding: 6px 10px 2px; font-weight: 600; text-transform: uppercase; }
+
+    /* Кнопки */
+    .actions { display: flex; gap: 12px; margin-top: 20px; align-items: center; }
+    .btn-confirm {
+      background: #1a56db; color: #fff; border: none; border-radius: 8px;
+      padding: 12px 28px; font-size: 15px; cursor: pointer; font-weight: 600;
+    }
+    .btn-confirm:hover { background: #1648c0; }
+    .btn-back { color: #666; text-decoration: none; font-size: 14px; }
+    .mode-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; margin-left: 8px;
+      background: {% if mode == 'ocr' %}#fff3cd{% else %}#d4edda{% endif %};
+      color: {% if mode == 'ocr' %}#856404{% else %}#155724{% endif %};
+    }
+
+    .empty { color: #aaa; font-style: italic; padding: 16px; text-align: center; }
   </style>
 </head>
 <body>
-  <h2>Проверка позиций</h2>
-  <p>Найдено строк: {{ items|length }}</p>
+<div class="container">
+  <h1>Проверка расчёта <span class="mode-badge">{{ "OCR" if mode == "ocr" else "Текст" }}</span></h1>
+  <div class="meta">Файл: {{ filename }} | Страницы: {{ pages }}</div>
 
-  {% if saved %}
-    <p style="color:green;"><b>Изменения сохранены</b></p>
-  {% endif %}
+  <!-- Итог по толщинам -->
+  <div class="summary">
+    {% for thickness, area in summary.items() %}
+    <div class="summary-card">
+      <div class="label">Металл {{ thickness }} мм</div>
+      <div class="value">{{ area }}</div>
+      <div class="sub">м²</div>
+    </div>
+    {% endfor %}
+    <div class="summary-card">
+      <div class="label">ИТОГО</div>
+      <div class="value">{{ total }}</div>
+      <div class="sub">м² металла</div>
+    </div>
+  </div>
 
-  <form method="post" action="/review/{{ project_id }}">
-    <input type="hidden" name="row_count" value="{{ items|length }}">
+  <!-- Системы -->
+  {% for sys in systems %}
+  <div class="system-block">
+    <div class="system-header">{{ sys.name }}</div>
 
+    {% if sys.metal %}
     <table>
       <tr>
-        <th>Удалить</th>
-        <th>Система</th>
         <th>Наименование</th>
         <th>Размер</th>
-        <th>Толщина</th>
-        <th>Ед. изм</th>
         <th>Кол-во</th>
+        <th>Толщина</th>
+        <th>м²</th>
       </tr>
-
-      {% for i in items %}
+      {% for item in sys.metal %}
       <tr>
+        <td>{{ item.description }}</td>
         <td>
-          <input type="checkbox" name="delete_{{ loop.index0 }}">
+          {% if item.d_mm %}Ø{{ item.d_mm }}
+          {% elif item.a_mm and item.b_mm %}{{ item.a_mm }}×{{ item.b_mm }}
+          {% else %}—{% endif %}
         </td>
-
-        <td>
-          <input type="text" name="system_{{ loop.index0 }}" value="{{ i.system or '' }}">
-        </td>
-
-        <td>
-          <input type="text" name="name_{{ loop.index0 }}" value="{{ i.name or '' }}">
-        </td>
-
-        <td>
-          {% if i.shape == "round" %}
-            <input type="text" name="size_{{ loop.index0 }}" value="Ø{{ i.d_mm }}">
-          {% elif i.shape == "rect" %}
-            <input type="text" name="size_{{ loop.index0 }}" value="{{ i.w_mm }}x{{ i.h_mm }}">
-          {% else %}
-            <input type="text" name="size_{{ loop.index0 }}" value="">
-          {% endif %}
-        </td>
-
-        <td>
-          <input type="text" name="thickness_{{ loop.index0 }}" value="{{ i.thickness or '' }}">
-        </td>
-
-        <td>
-          <input type="text" name="unit_{{ loop.index0 }}" value="{{ i.unit or '' }}">
-        </td>
-
-        <td>
-          <input type="text" name="qty_{{ loop.index0 }}" value="{{ i.qty or '' }}">
-        </td>
+        <td>{{ item.qty }} {{ item.unit }}</td>
+        <td><span class="thick">{{ item.thickness }} мм</span></td>
+        <td class="area">{{ item.area_m2 }}</td>
       </tr>
-
-      <!-- скрытые поля, чтобы не потерять -->
-      <input type="hidden" name="page_{{ loop.index0 }}" value="{{ i.page or '' }}">
-      <input type="hidden" name="category_{{ loop.index0 }}" value="{{ i.category or '' }}">
-      <input type="hidden" name="mark_{{ loop.index0 }}" value="{{ i.mark or '' }}">
-      <input type="hidden" name="shape_{{ loop.index0 }}" value="{{ i.shape or '' }}">
-      <input type="hidden" name="w_mm_{{ loop.index0 }}" value="{{ i.w_mm or '' }}">
-      <input type="hidden" name="h_mm_{{ loop.index0 }}" value="{{ i.h_mm or '' }}">
-      <input type="hidden" name="d_mm_{{ loop.index0 }}" value="{{ i.d_mm or '' }}">
-      <input type="hidden" name="raw_{{ loop.index0 }}" value="{{ i.raw or '' }}">
       {% endfor %}
     </table>
+    {% endif %}
 
-    <br>
-    <button type="submit">Сохранить изменения</button>
-    <a href="/calculate/{{ project_id }}">Посчитать</a>
-    <a href="/">← назад</a>
-  </form>
+    {% if sys.insulation %}
+    <div class="iso-label">Изоляция</div>
+    <table>
+      <tr>
+        <th>Наименование</th>
+        <th>Кол-во</th>
+        <th>Ед. изм</th>
+      </tr>
+      {% for iso in sys.insulation %}
+      <tr class="iso-section">
+        <td>{{ iso.description }}</td>
+        <td>{{ iso.qty }}</td>
+        <td>{{ iso.unit }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if not sys.metal and not sys.insulation %}
+    <div class="empty">Нет данных</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% if not systems %}
+  <div class="empty" style="background:#fff;padding:40px;border-radius:8px;">Позиции не найдены</div>
+  {% endif %}
+
+  <!-- Кнопка сохранить -->
+  <div class="actions">
+    <button class="btn-confirm" onclick="saveProject()">✓ Подтвердить и сохранить проект</button>
+    <a href="/" class="btn-back">← Назад</a>
+  </div>
+</div>
+
+<script>
+const resultData = {{ result_json | safe }};
+
+function saveProject() {
+  fetch('/save-project', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      filename: "{{ filename }}",
+      ...resultData
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.project_id) {
+      window.location.href = '/project/' + d.project_id;
+    }
+  })
+  .catch(e => alert('Ошибка сохранения: ' + e));
+}
+</script>
 </body>
 </html>

@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Проект</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .meta { color: #666; font-size: 13px; margin-bottom: 20px; }
+
+    .status-bar {
+      background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      padding: 16px 20px; margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .status-waiting { color: #856404; background: #fff3cd; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+    .status-done { color: #155724; background: #d4edda; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+
+    .summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .summary-card {
+      background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      padding: 14px 20px; min-width: 160px;
+    }
+    .summary-card .label { font-size: 12px; color: #888; }
+    .summary-card .value { font-size: 24px; font-weight: bold; color: #1a56db; }
+    .summary-card .sub { font-size: 12px; color: #555; }
+
+    .system-block { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+    .system-header { background: #f0f4ff; padding: 10px 16px; font-weight: bold; font-size: 15px; border-bottom: 1px solid #ddd; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #fafafa; padding: 8px 10px; text-align: left; border-bottom: 2px solid #eee; color: #555; font-weight: 600; }
+    td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; }
+    tr:last-child td { border-bottom: none; }
+    .area { font-weight: bold; color: #1a56db; }
+    .thick { background: #e8f0fe; color: #1a56db; border-radius: 4px; padding: 2px 8px; font-size: 12px; display: inline-block; }
+    .iso-label { font-size: 11px; color: #999; padding: 6px 10px 2px; font-weight: 600; text-transform: uppercase; }
+    .iso-section { background: #fffbf0; }
+
+    .supplier-block {
+      background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      padding: 20px; margin-bottom: 20px;
+    }
+    .supplier-block h3 { margin-bottom: 12px; font-size: 16px; }
+    .upload-zone {
+      border: 2px dashed #ccc; border-radius: 8px; padding: 30px;
+      text-align: center; color: #888; cursor: pointer;
+    }
+    .upload-zone:hover { border-color: #1a56db; color: #1a56db; }
+    input[type=file] { display: none; }
+
+    .btn { border: none; border-radius: 8px; padding: 10px 24px; font-size: 14px; cursor: pointer; font-weight: 600; }
+    .btn-primary { background: #1a56db; color: #fff; }
+    .btn-primary:hover { background: #1648c0; }
+    .btn-back { color: #666; text-decoration: none; font-size: 14px; }
+
+    .note { font-size: 12px; color: #999; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>{{ project.filename }}</h1>
+  <div class="meta">Создан: {{ project.created_date }}</div>
+
+  <!-- Статус -->
+  <div class="status-bar">
+    <div>
+      {% if project.status == "waiting_supplier" %}
+        <span class="status-waiting">⏳ Ждём цену от поставщиков</span>
+      {% else %}
+        <span class="status-done">✓ Цены получены</span>
+      {% endif %}
+    </div>
+    <a href="/" class="btn-back">← Назад</a>
+  </div>
+
+  <!-- Итог по металлу -->
+  <div class="summary">
+    {% for thickness, area in project.summary_by_thickness.items() %}
+    <div class="summary-card">
+      <div class="label">Металл {{ thickness }} мм</div>
+      <div class="value">{{ area }}</div>
+      <div class="sub">м²</div>
+    </div>
+    {% endfor %}
+    <div class="summary-card">
+      <div class="label">ИТОГО</div>
+      <div class="value">{{ project.total_m2 }}</div>
+      <div class="sub">м² металла</div>
+    </div>
+  </div>
+
+  <!-- Системы -->
+  {% for sys in project.systems %}
+  <div class="system-block">
+    <div class="system-header">{{ sys.name }}</div>
+    {% if sys.metal %}
+    <table>
+      <tr>
+        <th>Наименование</th>
+        <th>Размер</th>
+        <th>Кол-во</th>
+        <th>Толщина</th>
+        <th>м²</th>
+      </tr>
+      {% for item in sys.metal %}
+      <tr>
+        <td>{{ item.description }}</td>
+        <td>
+          {% if item.d_mm %}Ø{{ item.d_mm }}
+          {% elif item.a_mm and item.b_mm %}{{ item.a_mm }}×{{ item.b_mm }}
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ item.qty }} {{ item.unit }}</td>
+        <td><span class="thick">{{ item.thickness }} мм</span></td>
+        <td class="area">{{ item.area_m2 }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+    {% if sys.insulation %}
+    <div class="iso-label">Изоляция</div>
+    <table>
+      <tr><th>Наименование</th><th>Кол-во</th><th>Ед. изм</th></tr>
+      {% for iso in sys.insulation %}
+      <tr class="iso-section">
+        <td>{{ iso.description }}</td>
+        <td>{{ iso.qty }}</td>
+        <td>{{ iso.unit }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <!-- Загрузка от поставщика -->
+  {% if project.status == "waiting_supplier" %}
+  <div class="supplier-block">
+    <h3>Загрузить цены от поставщика</h3>
+    <div class="upload-zone" onclick="document.getElementById('supplierFile').click()">
+      📄 Нажмите чтобы выбрать файл от поставщика
+    </div>
+    <input type="file" id="supplierFile" accept=".pdf,.xlsx,.xls" onchange="uploadSupplier(this)">
+    <div class="note">Поддерживаются PDF и Excel файлы</div>
+  </div>
+  {% endif %}
+
+  {% if project.supplier_data %}
+  <div class="supplier-block">
+    <h3>✓ Файл от поставщика загружен</h3>
+    <p>{{ project.supplier_data.filename }} — {{ project.supplier_data.uploaded_at[:10] }}</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function uploadSupplier(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  fetch('/project/{{ project.id }}/upload-supplier', {
+    method: 'POST',
+    body: formData
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.status === 'ok') {
+      location.reload();
+    } else {
+      alert('Ошибка: ' + (d.error || 'неизвестная'));
+    }
+  })
+  .catch(e => alert('Ошибка загрузки: ' + e));
+}
+</script>
+</body>
+</html>

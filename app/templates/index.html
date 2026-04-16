@@ -1,16 +1,96 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Разделить PDF</title>
+<meta charset="UTF-8">
+<title>Вент-Расчёт</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f4f6f9;min-height:100vh;padding:24px}
+.logo{font-size:20px;font-weight:700;color:#1a1a2e;margin-bottom:24px}
+.card{background:white;border-radius:12px;padding:32px;max-width:500px;margin:0 auto 32px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.upload-area{border:2px dashed #c8d0e0;border-radius:10px;padding:36px 20px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:16px}
+.upload-area:hover{border-color:#4a6cf7;background:#f8f9ff}
+.upload-icon{font-size:36px;margin-bottom:8px}
+.upload-text{font-size:15px;color:#444;margin-bottom:4px}
+.upload-hint{font-size:12px;color:#999}
+.file-name{font-size:13px;color:#4a6cf7;margin-top:8px;font-weight:500}
+input[type=file]{display:none}
+.pages-row{margin-bottom:16px}
+.pages-label{font-size:13px;color:#555;margin-bottom:6px;display:block}
+.pages-input{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;color:#333}
+.pages-hint{font-size:11px;color:#999;margin-top:4px}
+.btn{width:100%;padding:13px;background:#4a6cf7;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+.btn:hover{background:#3a5ce5}
+.btn:disabled{background:#aab4d4;cursor:not-allowed}
+.error{background:#fee;border:1px solid #fcc;border-radius:8px;padding:12px;color:#c00;margin-bottom:16px;font-size:13px}
+.loading{display:none;text-align:center;color:#666;font-size:13px;margin-top:12px}
+.projects{max-width:900px;margin:0 auto}
+.projects h2{font-size:17px;color:#1a1a2e;margin-bottom:14px}
+.proj-row{background:white;border-radius:8px;padding:14px 18px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.proj-name{font-size:14px;color:#333;font-weight:500}
+.proj-meta{font-size:12px;color:#888;margin-top:2px}
+.proj-right{display:flex;align-items:center;gap:12px}
+.proj-m2{font-size:16px;font-weight:700;color:#1a1a2e}
+.badge-wait{background:#fff3e0;color:#e65c00;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600}
+.badge-ready{background:#e8f5e9;color:#2e7d32;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600}
+.btn-open{padding:6px 14px;background:#4a6cf7;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;text-decoration:none}
+</style>
 </head>
 <body>
-    <h2>Разделить PDF</h2>
+<div class="logo">🔧 Вент-Расчёт</div>
 
-    <form action="/split" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" required><br><br>
-        <input type="text" name="pages" placeholder="Например: 1-3" required><br><br>
-        <button type="submit">Разделить</button>
-    </form>
+<div class="card">
+  {% if error %}<div class="error">⚠ {{ error }}</div>{% endif %}
+  <form action="/calculate" method="post" enctype="multipart/form-data" id="form">
+    <div class="upload-area" onclick="document.getElementById('fi').click()">
+      <div class="upload-icon">📄</div>
+      <div class="upload-text">Нажмите или перетащите PDF</div>
+      <div class="upload-hint">Любой формат — текст или скан</div>
+      <div class="file-name" id="fname"></div>
+    </div>
+    <input type="file" name="file" id="fi" accept=".pdf" required>
+
+    <div class="pages-row">
+      <label class="pages-label">Страницы вентиляции (необязательно)</label>
+      <input type="text" name="pages" class="pages-input" placeholder="Например: 4-10" id="pages">
+      <div class="pages-hint">Укажите только страницы со спецификацией вентиляции — сэкономит время и деньги</div>
+    </div>
+
+    <button type="submit" class="btn" id="sbtn" disabled>Рассчитать м² металла</button>
+  </form>
+  <div class="loading" id="loading">⏳ Claude AI обрабатывает PDF... (~30 сек)</div>
+</div>
+
+{% if projects %}
+<div class="projects">
+  <h2>Проекты в работе</h2>
+  {% for p in projects %}
+  <div class="proj-row">
+    <div>
+      <div class="proj-name">📁 {{ p.filename }}</div>
+      <div class="proj-meta">{{ p.created_date }} · {{ p.total_m2 }} м²</div>
+    </div>
+    <div class="proj-right">
+      {% if p.status == 'waiting_supplier' %}
+      <span class="badge-wait">⏳ Ждём поставщика</span>
+      {% else %}
+      <span class="badge-ready">✓ Получен</span>
+      {% endif %}
+      <a href="/project/{{ p.id }}" class="btn-open">Открыть</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script>
+const fi=document.getElementById('fi'),sbtn=document.getElementById('sbtn'),fname=document.getElementById('fname');
+fi.addEventListener('change',()=>{if(fi.files[0]){fname.textContent='✓ '+fi.files[0].name;sbtn.disabled=false;}});
+document.getElementById('form').addEventListener('submit',()=>{sbtn.disabled=true;sbtn.textContent='Считаем...';document.getElementById('loading').style.display='block';});
+const ua=document.querySelector('.upload-area');
+ua.addEventListener('dragover',e=>{e.preventDefault();ua.style.borderColor='#4a6cf7';});
+ua.addEventListener('dragleave',()=>{ua.style.borderColor='';});
+ua.addEventListener('drop',e=>{e.preventDefault();ua.style.borderColor='';const f=e.dataTransfer.files[0];if(f&&f.name.endsWith('.pdf')){const dt=new DataTransfer();dt.items.add(f);fi.files=dt.files;fname.textContent='✓ '+f.name;sbtn.disabled=false;}});
+</script>
 </body>
 </html>
