@@ -9,7 +9,7 @@ import pypdf
 
 os.environ["PATH"] += r";C:\vent_app\poppler\poppler-25.12.0\Library\bin"
 
-ANTHROPIC_API_KEY = "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"
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
 API_URL = "https://api.anthropic.com/v1/messages"
 
