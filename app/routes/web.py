@@ -7,7 +7,7 @@ from app.services.claude_service import process_pdf
 from typing import Optional
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory="templates")
 PROJECTS_DIR = "data/projects"
 os.makedirs(PROJECTS_DIR, exist_ok=True)
 os.makedirs("uploads", exist_ok=True)

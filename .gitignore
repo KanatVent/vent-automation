@@ -8,3 +8,6 @@ data/projects/
 __pycache__/
 *.pyc
 .venv/
+.env
+logs/
+poppler.zip
