@@ -148,7 +148,7 @@ def _pdf_to_images(pdf_path: str, pages: str = None, dpi: int = 150) -> list:
 def _call_claude(content: list) -> str:
     payload = {
         "model": CLAUDE_MODEL,
-        "max_tokens": 8000,
+        "max_tokens": 16000,
         "system": SYSTEM_PROMPT,
         "messages": [{"role": "user", "content": content}]
     }
