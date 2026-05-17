@@ -1,7 +1,7 @@
 import os, uuid, json
 from datetime import datetime
 from fastapi import APIRouter, Request, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from app.services.claude_service import process_pdf
 from typing import Optional
@@ -9,7 +9,9 @@ from typing import Optional
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 PROJECTS_DIR = "data/projects"
+EXPORTS_DIR = "data/exports"
 os.makedirs(PROJECTS_DIR, exist_ok=True)
+os.makedirs(EXPORTS_DIR, exist_ok=True)
 os.makedirs("uploads", exist_ok=True)
 
 @router.get("/", response_class=HTMLResponse)
@@ -77,13 +79,38 @@ async def upload_supplier(request: Request, project_id: str, file: UploadFile = 
     with open(supplier_path, "wb") as f:
         f.write(content)
     try:
-        result = process_pdf(supplier_path)
-        project["supplier_data"] = {"filename": file.filename, "uploaded_at": datetime.now().isoformat(), "systems": result["systems"]}
+        from app.services.suppliers import RowenSupplier
+        supplier = RowenSupplier()
+        systems = supplier.parse(supplier_path)
+        project["supplier_data"] = {
+            "filename": file.filename,
+            "uploaded_at": datetime.now().isoformat(),
+            "systems": systems
+        }
         project["status"] = "supplier_received"
         _save_project(project)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
     return JSONResponse({"status": "ok"})
+
+@router.get("/project/{project_id}/generate-kp")
+async def generate_kp(project_id: str):
+    project = _load_project(project_id)
+    if not project:
+        return JSONResponse({"error": "Проект не найден"}, status_code=404)
+    if not project.get("supplier_data"):
+        return JSONResponse({"error": "Сначала загрузите счёт от поставщика"}, status_code=400)
+    try:
+        from app.services.kp_generator import generate_kp as gen_kp
+        path = gen_kp(project, EXPORTS_DIR)
+        filename = os.path.basename(path)
+        return FileResponse(
+            path=path,
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 def _load_project(pid):
     path = os.path.join(PROJECTS_DIR, f"{pid}.json")

@@ -10,17 +10,12 @@
     h1 { font-size: 20px; margin-bottom: 4px; }
     .meta { color: #666; font-size: 13px; margin-bottom: 20px; }
 
-    /* Итог по толщинам */
     .summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-    .summary-card {
-      background: #fff; border: 1px solid #ddd; border-radius: 8px;
-      padding: 14px 20px; min-width: 160px;
-    }
+    .summary-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 14px 20px; min-width: 160px; }
     .summary-card .label { font-size: 12px; color: #888; }
     .summary-card .value { font-size: 24px; font-weight: bold; color: #1a56db; }
     .summary-card .sub { font-size: 12px; color: #555; }
 
-    /* Системы */
     .system-block { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
     .system-header { background: #f0f4ff; padding: 10px 16px; font-weight: bold; font-size: 15px; border-bottom: 1px solid #ddd; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -29,16 +24,16 @@
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #fafeff; }
     .area { font-weight: bold; color: #1a56db; }
-    .thick { background: #e8f0fe; color: #1a56db; border-radius: 4px; padding: 2px 8px; font-size: 12px; display: inline-block; }
+    .thick { border-radius: 4px; padding: 2px 8px; font-size: 12px; display: inline-block; font-weight: 600; }
+    .thick-05 { background: #d4edda; color: #155724; }
+    .thick-07 { background: #cce5ff; color: #004085; }
+    .thick-09 { background: #fff3cd; color: #856404; }
+    .thick-10 { background: #f8d7da; color: #721c24; }
     .iso-section { background: #fffbf0; }
     .iso-label { font-size: 11px; color: #999; padding: 6px 10px 2px; font-weight: 600; text-transform: uppercase; }
 
-    /* Кнопки */
     .actions { display: flex; gap: 12px; margin-top: 20px; align-items: center; }
-    .btn-confirm {
-      background: #1a56db; color: #fff; border: none; border-radius: 8px;
-      padding: 12px 28px; font-size: 15px; cursor: pointer; font-weight: 600;
-    }
+    .btn-confirm { background: #1a56db; color: #fff; border: none; border-radius: 8px; padding: 12px 28px; font-size: 15px; cursor: pointer; font-weight: 600; }
     .btn-confirm:hover { background: #1648c0; }
     .btn-back { color: #666; text-decoration: none; font-size: 14px; }
     .mode-badge {
@@ -46,8 +41,28 @@
       background: {% if mode == 'ocr' %}#fff3cd{% else %}#d4edda{% endif %};
       color: {% if mode == 'ocr' %}#856404{% else %}#155724{% endif %};
     }
-
     .empty { color: #aaa; font-style: italic; padding: 16px; text-align: center; }
+
+    /* Редактирование */
+    .editable { cursor: pointer; border-bottom: 1px dashed #bbb; display: inline-block; min-width: 30px; }
+    .editable:hover { background: #fffbe6; border-radius: 3px; }
+    input.edit-input { width: 70px; padding: 2px 4px; font-size: 13px; border: 1px solid #1a56db; border-radius: 4px; }
+    select.edit-select { padding: 2px 4px; font-size: 13px; border: 1px solid #1a56db; border-radius: 4px; }
+    .btn-delete { background: none; border: none; color: #ccc; cursor: pointer; font-size: 15px; padding: 2px 6px; border-radius: 4px; }
+    .btn-delete:hover { color: #dc3545; background: #fff0f0; }
+    .btn-add { background: #f0f4ff; border: 1px dashed #1a56db; color: #1a56db; border-radius: 6px; padding: 6px 16px; font-size: 13px; cursor: pointer; margin: 8px 10px; font-weight: 600; display: inline-block; }
+    .btn-add:hover { background: #e0eaff; }
+
+    /* Модальное окно */
+    .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:100; align-items:center; justify-content:center; }
+    .modal-overlay.active { display:flex; }
+    .modal { background:#fff; border-radius:12px; padding:24px; width:420px; max-width:90%; }
+    .modal h3 { margin-bottom:16px; font-size:16px; }
+    .modal label { font-size:13px; color:#555; display:block; margin-bottom:4px; }
+    .modal select, .modal input { width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:6px; font-size:14px; margin-bottom:12px; }
+    .modal-btns { display:flex; gap:10px; justify-content:flex-end; margin-top:4px; }
+    .btn-cancel { background:#f5f5f5; border:1px solid #ddd; border-radius:6px; padding:8px 18px; cursor:pointer; font-size:14px; }
+    .btn-ok { background:#1a56db; color:#fff; border:none; border-radius:6px; padding:8px 18px; cursor:pointer; font-size:14px; font-weight:600; }
   </style>
 </head>
 <body>
@@ -55,10 +70,9 @@
   <h1>Проверка расчёта <span class="mode-badge">{{ "OCR" if mode == "ocr" else "Текст" }}</span></h1>
   <div class="meta">Файл: {{ filename }} | Страницы: {{ pages }}</div>
 
-  <!-- Итог по толщинам -->
-  <div class="summary">
+  <div class="summary" id="summaryBlock">
     {% for thickness, area in summary.items() %}
-    <div class="summary-card">
+    <div class="summary-card" id="card-{{ thickness | replace('.', '_') }}">
       <div class="label">Металл {{ thickness }} мм</div>
       <div class="value">{{ area }}</div>
       <div class="sub">м²</div>
@@ -66,14 +80,13 @@
     {% endfor %}
     <div class="summary-card">
       <div class="label">ИТОГО</div>
-      <div class="value">{{ total }}</div>
+      <div class="value" id="totalValue">{{ total }}</div>
       <div class="sub">м² металла</div>
     </div>
   </div>
 
-  <!-- Системы -->
   {% for sys in systems %}
-  <div class="system-block">
+  <div class="system-block" data-sys="{{ loop.index0 }}">
     <div class="system-header">{{ sys.name }}</div>
 
     {% if sys.metal %}
@@ -84,31 +97,37 @@
         <th>Кол-во</th>
         <th>Толщина</th>
         <th>м²</th>
+        <th style="width:36px;"></th>
       </tr>
       {% for item in sys.metal %}
-      <tr>
+      <tr data-type="{{ item.type }}" data-a="{{ item.a_mm or 0 }}" data-b="{{ item.b_mm or 0 }}" data-d="{{ item.d_mm or 0 }}" data-thick="{{ item.thickness }}">
         <td>{{ item.description }}</td>
         <td>
           {% if item.d_mm %}Ø{{ item.d_mm }}
           {% elif item.a_mm and item.b_mm %}{{ item.a_mm }}×{{ item.b_mm }}
           {% else %}—{% endif %}
         </td>
-        <td>{{ item.qty }} {{ item.unit }}</td>
-        <td><span class="thick">{{ item.thickness }} мм</span></td>
+        <td>
+          <span class="editable" onclick="editQty(this)">{{ item.qty }}</span>
+          {{ item.unit }}
+        </td>
+        <td>
+          {% set t = item.thickness | string | replace('.', '') %}
+          <span class="thick thick-{{ t }}">{{ item.thickness }} мм</span>
+        </td>
         <td class="area">{{ item.area_m2 }}</td>
+        <td><button class="btn-delete" onclick="deleteRow(this)" title="Удалить">✕</button></td>
       </tr>
       {% endfor %}
     </table>
     {% endif %}
 
+    <button class="btn-add" onclick="openAddModal('{{ sys.name }}', this)">+ Добавить позицию</button>
+
     {% if sys.insulation %}
     <div class="iso-label">Изоляция</div>
     <table>
-      <tr>
-        <th>Наименование</th>
-        <th>Кол-во</th>
-        <th>Ед. изм</th>
-      </tr>
+      <tr><th>Наименование</th><th>Кол-во</th><th>Ед. изм</th></tr>
       {% for iso in sys.insulation %}
       <tr class="iso-section">
         <td>{{ iso.description }}</td>
@@ -129,31 +148,227 @@
   <div class="empty" style="background:#fff;padding:40px;border-radius:8px;">Позиции не найдены</div>
   {% endif %}
 
-  <!-- Кнопка сохранить -->
   <div class="actions">
     <button class="btn-confirm" onclick="saveProject()">✓ Подтвердить и сохранить проект</button>
     <a href="/" class="btn-back">← Назад</a>
   </div>
 </div>
 
+<!-- Модальное окно добавления -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>Добавить позицию</h3>
+    <label>Тип</label>
+    <select id="addType" onchange="updateAddFields()">
+      <option value="duct_rect">Воздуховод прямоугольный</option>
+      <option value="duct_round">Воздуховод круглый</option>
+      <option value="elbow">Отвод/полуотвод</option>
+      <option value="transition">Переход</option>
+      <option value="tee">Тройник</option>
+      <option value="hood">Зонт</option>
+    </select>
+    <div id="fields_rect">
+      <label>A (мм)</label><input type="number" id="fA" placeholder="400">
+      <label>B (мм)</label><input type="number" id="fB" placeholder="300">
+      <label>Длина / Кол-во</label><input type="number" id="fQty" placeholder="10">
+      <label>Ед. изм</label>
+      <select id="fUnit"><option value="м">м</option><option value="шт">шт</option></select>
+    </div>
+    <div id="fields_round" style="display:none">
+      <label>D (мм)</label><input type="number" id="fD" placeholder="315">
+      <label>Длина (м)</label><input type="number" id="fQtyR" placeholder="10">
+    </div>
+    <label>Толщина (мм)</label>
+    <select id="fThick">
+      <option value="0.5">0.5</option>
+      <option value="0.7" selected>0.7</option>
+      <option value="0.9">0.9</option>
+      <option value="1.0">1.0</option>
+    </select>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-ok" onclick="confirmAdd()">Добавить</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const resultData = {{ result_json | safe }};
+let currentSysBlock = null;
+
+// ── Редактирование кол-ва ──────────────────────────────────
+function editQty(span) {
+  const current = span.textContent.trim();
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.className = 'edit-input';
+  input.value = current;
+  input.step = '0.1';
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+
+  function done() {
+    const val = parseFloat(input.value) || parseFloat(current);
+    const newSpan = document.createElement('span');
+    newSpan.className = 'editable';
+    newSpan.onclick = function() { editQty(this); };
+    newSpan.textContent = val;
+    input.replaceWith(newSpan);
+    recalcRow(newSpan.closest('tr'), val);
+    recalcSummary();
+  }
+  input.addEventListener('blur', done);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') done(); if (e.key === 'Escape') { input.value = current; done(); } });
+}
+
+function calcArea(type, a, b, d, qty, thick) {
+  const K = 1.10;
+  if (type === 'duct' || type === 'duct_rect') return Math.round(((a+b)/1000*2*qty*K)*100)/100;
+  if (type === 'duct_round') return Math.round((3.14159*d/1000*qty*K)*100)/100;
+  if (type === 'elbow' || type === 'transition') return Math.round(((a+b)/1000*2*K*0.6*qty)*100)/100;
+  if (type === 'tee') return Math.round(((a+b)/1000*2*K*0.7*qty)*100)/100;
+  if (type === 'hood') { if (a>1000||b>1000) return 0; return Math.round(((a+b)/1000*2*K*0.5*qty)*100)/100; }
+  if (type === 'sheet') return qty;
+  // fallback — попробуем по данным строки
+  if (d > 0) return Math.round((3.14159*d/1000*qty*K)*100)/100;
+  if (a > 0 && b > 0) return Math.round(((a+b)/1000*2*qty*K)*100)/100;
+  return 0;
+}
+
+function recalcRow(row, qty) {
+  const type = row.dataset.type || '';
+  const a = parseFloat(row.dataset.a) || 0;
+  const b = parseFloat(row.dataset.b) || 0;
+  const d = parseFloat(row.dataset.d) || 0;
+  const thick = parseFloat(row.dataset.thick) || 0.5;
+  const area = calcArea(type, a, b, d, qty, thick);
+  row.querySelector('.area').textContent = area;
+}
+
+function recalcSummary() {
+  const totals = {};
+  document.querySelectorAll('tr[data-thick]').forEach(row => {
+    if (!row.closest('table')) return;
+    const thick = row.dataset.thick;
+    const area = parseFloat(row.querySelector('.area')?.textContent) || 0;
+    totals[thick] = (totals[thick] || 0) + area;
+  });
+  let grand = 0;
+  Object.entries(totals).forEach(([t, v]) => {
+    grand += v;
+    const key = t.replace('.', '_');
+    const card = document.getElementById('card-' + key);
+    if (card) card.querySelector('.value').textContent = Math.round(v * 100) / 100;
+  });
+  const totalEl = document.getElementById('totalValue');
+  if (totalEl) totalEl.textContent = Math.round(grand * 100) / 100;
+}
+
+// ── Удаление строки ────────────────────────────────────────
+function deleteRow(btn) {
+  if (!confirm('Удалить эту позицию?')) return;
+  btn.closest('tr').remove();
+  recalcSummary();
+}
+
+// ── Добавление позиции ─────────────────────────────────────
+function openAddModal(sysName, btn) {
+  currentSysBlock = btn.closest('.system-block');
+  document.getElementById('addModal').classList.add('active');
+}
+function closeModal() { document.getElementById('addModal').classList.remove('active'); }
+function updateAddFields() {
+  const t = document.getElementById('addType').value;
+  document.getElementById('fields_rect').style.display = t === 'duct_round' ? 'none' : 'block';
+  document.getElementById('fields_round').style.display = t === 'duct_round' ? 'block' : 'none';
+}
+function confirmAdd() {
+  const type = document.getElementById('addType').value;
+  const thick = document.getElementById('fThick').value;
+  let a=0,b=0,d=0,qty=0,unit='шт',name='',size='';
+  if (type === 'duct_round') {
+    d = parseFloat(document.getElementById('fD').value)||0;
+    qty = parseFloat(document.getElementById('fQtyR').value)||0;
+    unit='м'; name=`Воздуховод круглый Ø${d}`; size=`Ø${d}`;
+  } else {
+    a = parseFloat(document.getElementById('fA').value)||0;
+    b = parseFloat(document.getElementById('fB').value)||0;
+    qty = parseFloat(document.getElementById('fQty').value)||0;
+    unit = document.getElementById('fUnit').value;
+    const labels = {duct_rect:'Воздуховод',elbow:'Отвод',transition:'Переход',tee:'Тройник',hood:'Зонт'};
+    name=`${labels[type]||'Позиция'} ${a}×${b}`; size=`${a}×${b}`;
+  }
+  const area = calcArea(type, a, b, d, qty, thick);
+  const thickClass = 'thick-' + thick.replace('.','');
+  let table = currentSysBlock.querySelector('table');
+  if (!table) {
+    table = document.createElement('table');
+    table.innerHTML = `<tr><th>Наименование</th><th>Размер</th><th>Кол-во</th><th>Толщина</th><th>м²</th><th style="width:36px;"></th></tr>`;
+    currentSysBlock.querySelector('.system-header').after(table);
+  }
+  const tr = document.createElement('tr');
+  tr.dataset.type = type; tr.dataset.a = a; tr.dataset.b = b; tr.dataset.d = d; tr.dataset.thick = thick;
+  tr.innerHTML = `
+    <td>${name}</td><td>${size}</td>
+    <td><span class="editable" onclick="editQty(this)">${qty}</span> ${unit}</td>
+    <td><span class="thick ${thickClass}">${thick} мм</span></td>
+    <td class="area">${area}</td>
+    <td><button class="btn-delete" onclick="deleteRow(this)" title="Удалить">✕</button></td>`;
+  table.appendChild(tr);
+  closeModal();
+  recalcSummary();
+}
+document.getElementById('addModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+// ── Сохранение ─────────────────────────────────────────────
+function collectData() {
+  const data = JSON.parse(JSON.stringify(resultData));
+  document.querySelectorAll('.system-block').forEach((block, si) => {
+    const sys = data.systems[si];
+    if (!sys) return;
+    const rows = block.querySelectorAll('table tr[data-thick]');
+    sys.metal = [];
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      const qtySpan = row.querySelector('.editable');
+      const qty = qtySpan ? parseFloat(qtySpan.textContent) : 0;
+      const area = parseFloat(row.querySelector('.area')?.textContent) || 0;
+      sys.metal.push({
+        description: cells[0]?.textContent.trim() || '',
+        type: row.dataset.type || 'duct',
+        a_mm: parseFloat(row.dataset.a)||null,
+        b_mm: parseFloat(row.dataset.b)||null,
+        d_mm: parseFloat(row.dataset.d)||null,
+        qty: qty,
+        unit: cells[2]?.textContent.replace(/[\d.]/g,'').trim() || 'м',
+        thickness: parseFloat(row.dataset.thick)||0.5,
+        area_m2: area
+      });
+    });
+  });
+  // Пересчёт summary
+  const summary = {};
+  data.systems.forEach(sys => {
+    (sys.metal||[]).forEach(item => {
+      const t = String(item.thickness);
+      summary[t] = Math.round(((summary[t]||0) + item.area_m2)*100)/100;
+    });
+  });
+  data.summary_by_thickness = summary;
+  data.total_m2 = Math.round(Object.values(summary).reduce((a,b)=>a+b,0)*100)/100;
+  return data;
+}
 
 function saveProject() {
+  const data = collectData();
   fetch('/save-project', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      filename: "{{ filename }}",
-      ...resultData
-    })
+    body: JSON.stringify({ filename: "{{ filename }}", ...data })
   })
   .then(r => r.json())
-  .then(d => {
-    if (d.project_id) {
-      window.location.href = '/project/' + d.project_id;
-    }
-  })
+  .then(d => { if (d.project_id) window.location.href = '/project/' + d.project_id; })
   .catch(e => alert('Ошибка сохранения: ' + e));
 }
 </script>

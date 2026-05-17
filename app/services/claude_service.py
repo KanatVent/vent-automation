@@ -6,7 +6,8 @@ import io
 import httpx
 from pdf2image import convert_from_path
 import pypdf
-
+from dotenv import load_dotenv
+load_dotenv()
 os.environ["PATH"] += r";C:\vent_app\poppler\poppler-25.12.0\Library\bin"
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
